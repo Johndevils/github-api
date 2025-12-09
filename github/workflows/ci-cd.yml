@@ -9,7 +9,7 @@ on:
 env:
   # CHANGE THIS to your Docker Hub username and image name
   # Format: username/repository-name
-  IMAGE_NAME: your-dockerhub-username/github-api
+  IMAGE_NAME: ghostsoul/github-api
 
 jobs:
   # JOB 1: CHECK PHP CODE QUALITY
