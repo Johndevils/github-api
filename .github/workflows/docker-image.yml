@@ -22,7 +22,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghostsoul/arsychat
+          images: ghostsoul/github-api
           tags: |
             type=raw,value=latest
             type=ref,event=branch
