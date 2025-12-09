@@ -1,0 +1,13 @@
+# IDE / OS Files
+.idea/
+.vscode/
+.DS_Store
+
+# Logs
+logs/*.log
+
+# Vendor (if you add libraries later)
+vendor/
+
+# Environment variables (Never commit API keys!)
+.env
