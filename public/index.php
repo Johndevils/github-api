@@ -42,8 +42,6 @@ if (!isset($_GET['username']) || empty(trim($_GET['username']))) {
 $username = trim($_GET['username']);
 
 // Sanitize: GitHub usernames may only contain alphanumeric characters or hyphens.
-// They cannot have multiple consecutive hyphens, start, or end with a hyphen.
-// For this API, a regex checking for alphanumeric and hyphens is sufficient security.
 if (!preg_match('/^[a-zA-Z0-9-]+$/', $username)) {
     sendErrorResponse(400, 'Bad Request: Invalid username format.');
 }
@@ -53,21 +51,31 @@ $apiUrl = "https://api.github.com/users/" . $username;
 
 $ch = curl_init();
 
+// --- NEW: Handle Authentication securely ---
+// We read the token from the server Environment Variables.
+// Do NOT hardcode the token here (e.g. $token = "ghp_...") to avoid security leaks.
+$githubToken = getenv('GITHUB_TOKEN');
+
+$requestHeaders = [];
+
+// If a token exists in the environment, add the Authorization header
+if ($githubToken) {
+    $requestHeaders[] = 'Authorization: token ' . $githubToken;
+}
+// -------------------------------------------
+
 // cURL Options
 $options = [
     CURLOPT_URL => $apiUrl,
-    CURLOPT_RETURNTRANSFER => true, // Return response as string rather than outputting it
-    CURLOPT_FOLLOWLOCATION => true, // Follow redirects
-    CURLOPT_TIMEOUT => 10,          // Stop if GitHub takes too long (10 seconds)
+    CURLOPT_RETURNTRANSFER => true, 
+    CURLOPT_FOLLOWLOCATION => true, 
+    CURLOPT_TIMEOUT => 10,          
     
-    // GitHub API Requirement: User-Agent header is mandatory.
-    // Using a generic name for this application.
+    // GitHub requires a User-Agent
     CURLOPT_USERAGENT => 'PHP-GitHub-Profile-Proxy/1.0',
     
-    // Optional: If you have a GitHub Token, add it here to increase rate limits (60 requests/hr -> 5000/hr)
-    // CURLOPT_HTTPHEADER => [
-    //    'Authorization: token YOUR_GITHUB_TOKEN_HERE'
-    // ]
+    // Add the headers (includes Token if available)
+    CURLOPT_HTTPHEADER => $requestHeaders
 ];
 
 curl_setopt_array($ch, $options);
@@ -81,9 +89,8 @@ curl_close($ch);
 
 // 6. Error Handling
 
-// A. Internal cURL failure (DNS issues, no internet, etc.)
+// A. Internal cURL failure
 if ($response === false) {
-    // Log the actual error to server logs if needed: error_log($curlError);
     sendErrorResponse(500, 'Internal Server Error: Failed to connect to GitHub API.');
 }
 
@@ -102,14 +109,13 @@ switch ($httpCode) {
 
     case 403:
         // Rate limit exceeded or forbidden
-        // We decode the response to see if GitHub sent a specific message (like "API rate limit exceeded")
         $data = json_decode((string)$response, true);
         $msg = $data['message'] ?? 'Access Forbidden or Rate Limit Exceeded.';
         sendErrorResponse(403, $msg);
         break;
 
     default:
-        // Handle other unexpected codes (500 from GitHub, 418, etc.)
+        // Handle other unexpected codes
         sendErrorResponse($httpCode, 'Upstream error from GitHub.');
         break;
 }
