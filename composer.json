@@ -1,0 +1,11 @@
+{
+    "name": "Johndevils/github-profile-api",
+    "description": "A raw PHP proxy API for GitHub user profiles.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.0",
+        "ext-curl": "*",
+        "ext-json": "*"
+    }
+}
