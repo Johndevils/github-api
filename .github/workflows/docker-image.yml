@@ -1,60 +1,37 @@
-name: CI/CD to Docker Hub
+name: Publish Docker image
 
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-env:
-  # Apna Docker Hub username aur repo name yahan dalein
-  # Example: rahuldev/github-api
-  IMAGE_NAME: your-dockerhub-username/php-github-api
 
 jobs:
-  php-quality:
+  push_to_registry:
+    name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: curl
-      - name: Validate Composer
-        run: composer validate --strict
-      - name: Check PHP Syntax
-        run: find . -name "*.php" -print0 | xargs -0 -n1 php -l
-
-  docker-build:
-    needs: php-quality
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
+      - name: Check out the repo
         uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          # Yahan ab TOKEN use ho raha hai
-          password: ${{ secrets.DOCKER_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata
+      - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ghostsoul/arsychat
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=sha
+            type=raw,value=latest
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
